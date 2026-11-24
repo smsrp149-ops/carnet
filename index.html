@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16130f">
+<title>Carnet</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: un carnet de poche, direct, perso
+   IDEA: le carnet à spirale où on colle tout ce qu'on croise
+   PICTURE: la liste elle-même, fiches colorées par rayon
+   COLOUR+TYPE: nuit chaude, papier crème, orange vif ; Archivo
+   LAYOUT: une colonne, barre de rayons, bouton + flottant */
+:root{--bg:#16130f;--card:#221d17;--card2:#2b251d;--ink:#f4ecd8;--mute:#a89c84;--line:#3a3227;--acc:#ff5a36;
+--idee:#ffc53d;--motion:#ff5a36;--son:#b58cff;--tech:#3dd6c5;--achat:#7bd35a;--autre:#a89c84;
+color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;
+padding:env(safe-area-inset-top) 0 calc(96px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 8px;border-bottom:1px solid var(--line)}
+h1{font-size:30px;line-height:1.05;margin:0;font-weight:800;display:flex;align-items:center;gap:10px}
+h1 small{font-size:13px;font-weight:400;color:var(--mute)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+input,textarea,select,button{font:inherit;color:inherit}
+.search{width:100%;margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:16px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;min-height:40px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.ghost{background:none;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px;cursor:pointer;font-size:14px}
+main{padding:12px 16px;max-width:720px;margin:0 auto}
+h2{font-size:15px;font-weight:600;color:var(--mute);margin:18px 0 8px}
+.card{background:var(--card);border-radius:14px;padding:12px 14px 12px 16px;margin-bottom:10px;position:relative;border-left:5px solid var(--c,var(--autre))}
+.card.done{opacity:.55}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px;color:var(--mute);align-items:center}
+.tag{color:var(--c);font-weight:600}
+.ttl{font-weight:600;margin:4px 0 2px;overflow-wrap:anywhere}
+.note{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0}
+.card a{color:var(--ink);opacity:.8;font-size:13px;overflow-wrap:anywhere}
+.acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.acts button{background:var(--card2);border:0;border-radius:9px;padding:8px 11px;min-height:38px;font-size:13px;cursor:pointer}
+.late{color:var(--acc);font-weight:600}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+.empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:6px}
+.fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:62px;height:62px;border-radius:50%;border:0;background:var(--acc);color:#16130f;font-size:34px;font-weight:800;box-shadow:0 8px 24px #0009;cursor:pointer;z-index:6}
+.claude{position:fixed;left:16px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:6;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:12px 16px;font-size:14px;cursor:pointer;box-shadow:0 8px 24px #0008}
+.sheet{position:fixed;inset:0;background:#000a;z-index:10;display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.panel{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.panel h3{margin:0 0 12px;font-size:22px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 6px}
+.field{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:16px}
+textarea.field{min-height:96px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:13px 18px;min-height:48px;font-weight:600;cursor:pointer;font-size:16px}
+.primary{background:var(--acc);color:#16130f;flex:1}
+.secondary{background:var(--card2)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:20;display:none;gap:12px;align-items:center;font-size:14px;max-width:92vw}
+.toast button{background:none;border:0;color:var(--acc);font-weight:800;cursor:pointer}
+.stats{display:flex;gap:8px;margin-top:4px}
+.stat{flex:1;background:var(--card);border-radius:12px;padding:10px 12px}
+.stat b{font-size:24px;display:block;line-height:1.1}
+.stat span{font-size:12px;color:var(--mute)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(40px);opacity:0}}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>Carnet <small id="count"></small></h1>
+    <button class="ghost" id="menuBtn" aria-label="Options">⋯</button>
+  </div>
+  <input class="search" id="q" type="search" placeholder="Chercher un mot, un lien, une idée…">
+  <div class="chips" id="cats"></div>
+  <div class="chips" id="stats"></div>
+</header>
+
+<main id="list"></main>
+
+<button class="claude" id="toClaude">Envoyer à Claude</button>
+<button class="fab" id="add" aria-label="Ajouter">+</button>
+
+<div class="sheet" id="edit"><div class="panel">
+  <h3 id="editTitle">Nouvelle trouvaille</h3>
+  <label for="fUrl">Lien</label>
+  <input class="field" id="fUrl" inputmode="url" placeholder="https://…">
+  <label for="fTitle">Titre (facultatif)</label>
+  <input class="field" id="fTitle" placeholder="Ex. Transition masque sur pub Nike">
+  <label for="fNote">Ta réaction, ce que tu veux en faire</label>
+  <textarea class="field" id="fNote" placeholder="Ex. J'adore le rythme du texte à 0:12, à refaire pour un client resto"></textarea>
+  <label>Rayon</label>
+  <div class="chips" id="fCats" style="flex-wrap:wrap"></div>
+  <label>Statut</label>
+  <div class="chips" id="fStatus" style="flex-wrap:wrap"></div>
+  <label for="fDue">Pour quand (facultatif)</label>
+  <input class="field" id="fDue" type="date">
+  <div class="row" style="margin-top:18px">
+    <button class="btn secondary" id="cancel">Annuler</button>
+    <button class="btn primary" id="save">Ranger</button>
+  </div>
+</div></div>
+
+<div class="sheet" id="menu"><div class="panel">
+  <h3>Options</h3>
+  <p style="color:var(--mute);margin:0 0 12px;font-size:14px">Tes fiches restent sur ce téléphone. Fais une sauvegarde de temps en temps.</p>
+  <div class="row" style="flex-direction:column">
+    <button class="btn secondary" id="exp">Sauvegarder (fichier .json)</button>
+    <button class="btn secondary" id="imp">Restaurer une sauvegarde</button>
+    <button class="btn secondary" id="closeMenu">Fermer</button>
+  </div>
+  <input type="file" id="impFile" accept="application/json,.json" hidden>
+</div></div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+
+<script>
+{
+const CATS = [
+  {id:'idee', name:'Idée créa'}, {id:'motion', name:'Motion / pub'}, {id:'son', name:'Son / rap'},
+  {id:'tech', name:'Tech à tester'}, {id:'achat', name:'À acheter'}, {id:'autre', name:'Autre'}
+];
+const STATUS = [
+  {id:'nouveau', name:'À trier'}, {id:'prevu', name:'Prévu'}, {id:'encours', name:'En cours'}, {id:'fait', name:'Fait'}
+];
+const KEY = 'carnet.v1';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const catOf = id => CATS.find(c => c.id === id) || CATS[5];
+const stOf = id => STATUS.find(s => s.id === id) || STATUS[0];
+const today = () => new Date().toISOString().slice(0, 10);
+const DAY = 864e5;
+
+let items = [];
+try { items = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { items = []; }
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) { toast('Impossible d\'enregistrer'); } };
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+let fCat = 'tous', fSt = 'actifs', query = '', editing = null, formCat = 'idee', formSt = 'nouveau';
+
+function source(u) {
+  try {
+    const h = new URL(u).hostname.replace(/^www\.|^m\./, '');
+    const map = {'instagram.com':'Instagram','facebook.com':'Facebook','fb.watch':'Facebook','tiktok.com':'TikTok','vm.tiktok.com':'TikTok',
+      'youtube.com':'YouTube','youtu.be':'YouTube','x.com':'X','twitter.com':'X','pinterest.com':'Pinterest','behance.net':'Behance','dribbble.com':'Dribbble'};
+    return map[h] || h;
+  } catch (e) { return ''; }
+}
+function findUrl(t) { const m = String(t || '').match(/https?:\/\/[^\s"'<>]+/); return m ? m[0] : ''; }
+function ago(ts) {
+  const d = Math.floor((Date.now() - ts) / DAY);
+  return d <= 0 ? "aujourd'hui" : d === 1 ? 'hier' : 'il y a ' + d + ' j';
+}
+function needsYou(it) {
+  if (it.status === 'fait') return false;
+  if (it.status === 'nouveau') return true;
+  if (it.due && it.due <= today()) return true;
+  return Date.now() - it.updated > 10 * DAY;
+}
+
+function chipsHtml(list, active, attr) {
+  return list.map(c => `<button class="chip" data-${attr}="${c.id}" aria-pressed="${c.id === active}">${c.dot ? `<span class="dot" style="background:var(--${c.id})"></span>` : ''}${esc(c.name)}</button>`).join('');
+}
+
+function visible() {
+  const q = query.trim().toLowerCase();
+  return items.filter(it => {
+    if (fCat !== 'tous' && it.cat !== fCat) return false;
+    if (fSt === 'actifs' && it.status === 'fait') return false;
+    if (fSt !== 'actifs' && fSt !== 'tout' && it.status !== fSt) return false;
+    if (q && !(it.title + ' ' + it.note + ' ' + it.url + ' ' + catOf(it.cat).name).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function cardHtml(it) {
+  const c = catOf(it.cat), late = it.due && it.due < today() && it.status !== 'fait';
+  return `<article class="card ${it.status === 'fait' ? 'done' : ''}" style="--c:var(--${c.id})">
+    <div class="meta"><span class="tag">${esc(c.name)}</span><span>${esc(stOf(it.status).name)}</span>
+      ${it.src ? `<span>${esc(it.src)}</span>` : ''}<span>${ago(it.created)}</span>
+      ${it.due ? `<span class="${late ? 'late' : ''}">pour le ${esc(it.due.split('-').reverse().join('/'))}</span>` : ''}</div>
+    ${it.title ? `<div class="ttl">${esc(it.title)}</div>` : ''}
+    ${it.note ? `<div class="note">${esc(it.note)}</div>` : ''}
+    ${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.url.length > 60 ? it.url.slice(0, 60) + '…' : it.url)}</a>` : ''}
+    <div class="acts">
+      ${it.status !== 'fait' ? `<button data-act="next" data-id="${it.id}">${it.status === 'nouveau' ? 'Prévoir' : it.status === 'prevu' ? 'Commencer' : 'Fait ✓'}</button>` : `<button data-act="reopen" data-id="${it.id}">Rouvrir</button>`}
+      <button data-act="ask" data-id="${it.id}">Demander à Claude</button>
+      <button data-act="edit" data-id="${it.id}">Modifier</button>
+      <button data-act="del" data-id="${it.id}">Supprimer</button>
+    </div></article>`;
+}
+
+function render() {
+  $('cats').innerHTML = chipsHtml([{id:'tous', name:'Tout'}].concat(CATS.map(c => ({...c, dot:1}))), fCat, 'cat');
+  $('stats').innerHTML = chipsHtml([{id:'actifs', name:'En cours de vie'}].concat(STATUS).concat([{id:'tout', name:'Tout, même fait'}]), fSt, 'st');
+  const open = items.filter(i => i.status !== 'fait').length;
+  $('count').textContent = items.length ? open + ' ouvertes · ' + items.length + ' au total' : '';
+  const list = visible().sort((a, b) => b.created - a.created);
+  let html = '';
+  if (!items.length) {
+    html = `<div class="empty"><b>Ton carnet est vide</b>Sur Instagram, Facebook ou TikTok, appuie sur Partager puis choisis Carnet. Ou appuie sur + pour noter une idée.</div>`;
+  } else {
+    const urgent = (fCat === 'tous' && fSt === 'actifs' && !query) ? items.filter(needsYou).sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1) : [];
+    if (urgent.length) {
+      html += `<h2>À reprendre (${urgent.length})</h2>` + urgent.slice(0, 5).map(cardHtml).join('');
+      const ids = new Set(urgent.slice(0, 5).map(i => i.id));
+      const rest = list.filter(i => !ids.has(i.id));
+      if (rest.length) html += `<h2>Le reste du carnet</h2>` + rest.map(cardHtml).join('');
+    } else {
+      html = list.length ? list.map(cardHtml).join('') : `<div class="empty"><b>Rien ici</b>Change de rayon ou de filtre.</div>`;
+    }
+  }
+  $('list').innerHTML = html;
+}
+
+function openEdit(it, pre) {
+  editing = it ? it.id : null;
+  const d = it || pre || {};
+  $('editTitle').textContent = it ? 'Modifier la fiche' : 'Nouvelle trouvaille';
+  $('fUrl').value = d.url || ''; $('fTitle').value = d.title || ''; $('fNote').value = d.note || ''; $('fDue').value = d.due || '';
+  formCat = d.cat || (fCat !== 'tous' ? fCat : 'idee'); formSt = d.status || 'nouveau';
+  drawForm();
+  $('edit').classList.add('open');
+  setTimeout(() => (d.url ? $('fNote') : $('fUrl')).focus(), 50);
+}
+function drawForm() {
+  $('fCats').innerHTML = chipsHtml(CATS.map(c => ({...c, dot:1})), formCat, 'fcat');
+  $('fStatus').innerHTML = chipsHtml(STATUS, formSt, 'fst');
+}
+function closeEdit() { $('edit').classList.remove('open'); editing = null; }
+
+function save() {
+  const url = $('fUrl').value.trim(), title = $('fTitle').value.trim(), note = $('fNote').value.trim();
+  if (!url && !title && !note) { toast('Ajoute au moins un lien ou une note'); return; }
+  const now = Date.now();
+  if (editing) {
+    const it = items.find(i => i.id === editing);
+    Object.assign(it, {url, title, note, cat:formCat, status:formSt, due:$('fDue').value, src:source(url), updated:now});
+  } else {
+    items.push({id:now.toString(36) + Math.random().toString(36).slice(2, 6), url, title, note, cat:formCat, status:formSt, due:$('fDue').value, src:source(url), created:now, updated:now});
+  }
+  persist(); closeEdit(); render(); toast('Rangé dans ' + catOf(formCat).name);
+}
+
+let toastTimer, toastAction;
+function toast(msg, btn, fn) {
+  $('toastMsg').textContent = msg; $('toastBtn').textContent = btn || ''; $('toastBtn').style.display = btn ? '' : 'none';
+  toastAction = fn; $('toast').style.display = 'flex';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').style.display = 'none'; }, btn ? 5000 : 2200);
+}
+
+function itemText(it) {
+  return `- [${catOf(it.cat).name} · ${stOf(it.status).name}${it.due ? ' · pour le ' + it.due : ''}] ${it.title || ''}${it.note ? '\n  Ma réaction : ' + it.note.replace(/\n/g, ' ') : ''}${it.url ? '\n  Lien : ' + it.url : ''}`;
+}
+async function shareText(text, done) {
+  try {
+    if (navigator.share) { await navigator.share({text}); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); toast(done || 'Copié — colle-le dans Claude'); }
+  catch (e) { toast('Partage impossible ici'); }
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.cat) { fCat = t.dataset.cat; render(); return; }
+  if (t.dataset.st) { fSt = t.dataset.st; render(); return; }
+  if (t.dataset.fcat) { formCat = t.dataset.fcat; drawForm(); return; }
+  if (t.dataset.fst) { formSt = t.dataset.fst; drawForm(); return; }
+  const act = t.dataset.act; if (!act) return;
+  const it = items.find(i => i.id === t.dataset.id); if (!it) return;
+  if (act === 'edit') openEdit(it);
+  if (act === 'next') { it.status = {nouveau:'prevu', prevu:'encours', encours:'fait'}[it.status] || 'fait'; it.updated = Date.now(); persist(); render(); toast(stOf(it.status).name); }
+  if (act === 'reopen') { it.status = 'prevu'; it.updated = Date.now(); persist(); render(); }
+  if (act === 'del') {
+    const idx = items.indexOf(it); items.splice(idx, 1); persist(); render();
+    toast('Fiche supprimée', 'Annuler', () => { items.splice(idx, 0, it); persist(); render(); });
+  }
+  if (act === 'ask') shareText(`Voici une trouvaille de mon carnet :\n${itemText(it)}\n\nAide-moi à passer à l'action : qu'est-ce que je peux en tirer, et quelles sont les prochaines étapes concrètes ?`);
+});
+
+$('toastBtn').onclick = () => { $('toast').style.display = 'none'; if (toastAction) toastAction(); };
+$('add').onclick = () => openEdit(null);
+$('cancel').onclick = closeEdit;
+$('save').onclick = save;
+$('edit').onclick = e => { if (e.target.id === 'edit') closeEdit(); };
+$('q').oninput = e => { query = e.target.value; render(); };
+$('fUrl').addEventListener('change', () => { const u = findUrl($('fUrl').value); if (u) $('fUrl').value = u; });
+
+$('toClaude').onclick = () => {
+  const list = visible();
+  if (!list.length) { toast('Rien à envoyer avec ces filtres'); return; }
+  const scope = (fCat === 'tous' ? 'tout mon carnet' : 'le rayon « ' + catOf(fCat).name + ' »');
+  shareText(`Voici ${scope} (${list.length} fiches) :\n\n${list.map(itemText).join('\n\n')}\n\nAide-moi à faire le point : qu'est-ce que j'ai prévu, ce qui traîne, ce que je devrais faire en premier, et quelles idées je peux combiner pour mes prochains contenus.`);
+};
+
+$('menuBtn').onclick = () => $('menu').classList.add('open');
+$('closeMenu').onclick = () => $('menu').classList.remove('open');
+$('menu').onclick = e => { if (e.target.id === 'menu') $('menu').classList.remove('open'); };
+$('exp').onclick = () => {
+  const blob = new Blob([JSON.stringify(items, null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'carnet-' + today() + '.json';
+  document.body.appendChild(a); a.click(); a.remove(); toast('Sauvegarde créée');
+};
+$('imp').onclick = () => $('impFile').click();
+$('impFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text()); if (!Array.isArray(data)) throw 0;
+    const ids = new Set(items.map(i => i.id)); let n = 0;
+    data.forEach(d => { if (d && d.id && !ids.has(d.id)) { items.push(d); n++; } });
+    persist(); render(); $('menu').classList.remove('open'); toast(n + ' fiches restaurées');
+  } catch (err) { toast('Fichier non reconnu'); }
+  e.target.value = '';
+};
+
+// Arrivée depuis le menu Partager d'Android
+const p = new URLSearchParams(location.search);
+if (p.has('text') || p.has('url') || p.has('title')) {
+  const text = p.get('text') || '', url = p.get('url') || findUrl(text);
+  let rest = text.replace(url, '').trim();
+  let title = (p.get('title') || '').trim();
+  if (!title && rest.length < 120) { title = rest; rest = ''; }
+  history.replaceState(null, '', location.pathname);
+  render();
+  openEdit(null, {url, title, note:rest});
+} else render();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
